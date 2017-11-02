@@ -1,0 +1,12 @@
+val bcl2fastqimg = "chanzuckerberg/bcl2fastq"
+
+func bcl2fastq(sampleSheet file, bclPath dir) = 
+    exec(image := bcl2fastqimg, mem := 64*GiB) (output dir) {"
+        bcl2fastq --no-lane-splitting --sample-sheet {{sampleSheet}} -R {{bclPath}} -o {{output}}
+    "}
+
+val Main = {
+    sampleSheet := file("s3://rking-reflow-spike/bcl2fastq/samples.csv")
+    bclDir      :=  dir("s3://rking-reflow-spike/bcl2fastq/bcl/")
+    bcl2fastq(sampleSheet, bclDir)
+}

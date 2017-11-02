@@ -1,0 +1,72 @@
+val dirs = make("$/dirs")
+
+star := "darcyabjones/star"
+samtools := "biocontainers/samtools"
+htseq := "sleight82/htseq-count"
+
+func starIndex(genome file) (out dir) =
+    exec(image := star, mem := 32*GiB) (out dir) {"
+        tar -xvf {{genome}}
+        STAR \
+        --runThreadN 12 \
+        --runMode genomeGenerate \
+        --genomeDir {{out}} \
+        --genomeFastaFiles hg38-plus/hg38-plus.fa \
+        --sjdbGTFfile hg38-plus/hg38-plus.gtf
+    "}
+
+func starAlign(fastq file, genomeDir dir) = 
+    exec(image := star, mem := 12*GiB) (out dir) {"
+        cd {{out}}
+        STAR --outFilterType BySJout \
+            --outFilterMultimapNmax 20 \
+            --alignSJoverhangMin 8 \
+            --alignSJDBoverhangMin 1 \
+            --outFilterMismatchNmax 999 \
+            --outFilterMismatchNoverLmax 0.04 \
+            --alignIntronMin 20 \
+            --alignIntronMax 1000000 \
+            --alignMatesGapMax 1000000 \
+            --outSAMstrandField intronMotif \
+            --outSAMtype BAM Unsorted \
+            --outSAMattributes NH HI NM MD \
+            --outReadsUnmapped Fastx \
+            --readFilesCommand zcat \
+            --runThreadN 12 \
+            --genomeDir {{genomeDir}} \
+            --readFilesIn {{fastq}}
+    "}
+
+func samSort(aligned file) =
+    exec (image := samtools, mem := GiB) (sorted file) {"
+        samtools sort -m 6000000000 -o {{sorted}} {{aligned}}
+    "}
+
+func samIndex(sorted file) =
+    exec(image := samtools, mem := GiB) (index file) {"
+        samtools index -b {{sorted}} {{index}}
+    "}
+
+func samSortByName(sorted file) =
+    exec(image := samtools, mem := GiB) (byname file) {"
+        samtools sort -m 5000000000 -n -o {{byname}} {{sorted}}
+    "}
+
+func htseqCount(byName, gtf file) =
+   exec(image := htseq, mem := GiB) (counts file) {"
+     htseq-count -r name -s no -f bam -m intersection-nonempty {{byName}} {{gtf}} > {{counts}}
+   "}
+
+val Main = {
+    fastq := file("s3://czi-hca/data/200016868/rawdata/SRR035245/SRR035245.fastq.gz")
+    hg38    := file("s3://czi-hca/ref-genome/hg38-plus.tgz")
+    hg38Gtf := file("s3://czi-hca/ref-genome/hg38-plus.gtf")
+
+    val index = starIndex(hg38)
+    val output = starAlign(fastq, index)
+    val (aligned, _) = dirs.Pick(output, "Aligned.out.bam")
+    val sorted = samSort(aligned)
+    val index = samIndex(sorted)
+    val byName = samSortByName(sorted)
+    htseqCount(byName, hg38Gtf)
+}
