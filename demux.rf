@@ -1,12 +1,22 @@
+param (
+    runID string
+    out string
+)
+
+val dirs = make("$/dirs")
+val strings = make("$/strings")
+
 val bcl2fastqimg = "chanzuckerberg/bcl2fastq"
+val sampleSheet = file(strings.Join(["s3://czbiohub-seqbot/sample-sheets/", runID, ".csv"], ""))
+val bclDir = dir(strings.Join(["s3://czbiohub-seqbot/bcl/", runID], ""))
 
 func bcl2fastq(sampleSheet file, bclPath dir) = 
-    exec(image := bcl2fastqimg, mem := 64*GiB) (output dir) {"
-        bcl2fastq --no-lane-splitting --sample-sheet {{sampleSheet}} -R {{bclPath}} -o {{output}}
+    exec(image := bcl2fastqimg, mem := 64*GiB) (demuxed dir) {"
+        bcl2fastq --no-lane-splitting --sample-sheet {{sampleSheet}} -R {{bclPath}} -o {{demuxed}}
     "}
 
+
 val Main = {
-    sampleSheet := file("s3://rking-reflow-spike/bcl2fastq/samples.csv")
-    bclDir      :=  dir("s3://rking-reflow-spike/bcl2fastq/bcl/")
-    bcl2fastq(sampleSheet, bclDir)
+    demuxed := bcl2fastq(sampleSheet, bclDir)
+    dirs.Copy(demuxed, out)
 }
