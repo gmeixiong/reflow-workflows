@@ -67,15 +67,15 @@ func Compute(trim1, trim2 file) =
 	"}
 
 val Main = {
- //    r1 := file("s3://czbiohub-seqbot/fastqs/170907_A00111_0051_BH2HWLDMXX/G1-D042475-3_9_M-1-1_S236_R1_001.fastq.gz")
- //    r2 := file("s3://czbiohub-seqbot/fastqs/170907_A00111_0051_BH2HWLDMXX/G1-D042475-3_9_M-1-1_S236_R2_001.fastq.gz")
+    r1 := file("s3://czbiohub-seqbot/fastqs/170907_A00111_0051_BH2HWLDMXX/G1-D042475-3_9_M-1-1_S236_R1_001.fastq.gz")
+    r2 := file("s3://czbiohub-seqbot/fastqs/170907_A00111_0051_BH2HWLDMXX/G1-D042475-3_9_M-1-1_S236_R2_001.fastq.gz")
 
- //    val output = Trim(r1, r2)
+    val output = Trim(r1, r2)
 
- //    // trim-low-abund.py adds a new file in the same directory with the ending ".abundtrim"
- //    // Type is fastq (not fastq.gz) but don't need to specify for sourmash
- //    val (trim1, _) = dirs.Pick(output, "G1-D042475-3_9_M-1-1_S236_R1_001.fastq.gz.abundtrim")
- //    val (trim2, _) = dirs.Pick(output, "G1-D042475-3_9_M-1-1_S236_R2_001.fastq.gz.abundtrim")
+    // trim-low-abund.py adds a new file in the same directory with the ending ".abundtrim"
+    // Type is fastq (not fastq.gz) but don't need to specify for sourmash
+    val (trim1, _) = dirs.Pick(output, "G1-D042475-3_9_M-1-1_S236_R1_001.fastq.gz.abundtrim")
+    val (trim2, _) = dirs.Pick(output, "G1-D042475-3_9_M-1-1_S236_R2_001.fastq.gz.abundtrim")
 
-	// val computed  = Compute(trim1, trim2)
+	val computed  = Compute(trim1, trim2)
 }
