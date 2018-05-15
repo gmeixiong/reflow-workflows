@@ -1,0 +1,62 @@
+val dirs = make("$/dirs")
+
+
+
+//	# these are all the TM sequencing folders
+//	S3_FOLDERS = ['170907_A00111_0051_BH2HWLDMXX',
+//	              '170907_A00111_0052_AH2HTCDMXX',
+//	              '170910_A00111_0053_BH2HGKDMXX',
+//	              '170910_A00111_0054_AH2HGWDMXX',
+//	              '170914_A00111_0057_BH3FY7DMXX',
+//	              '170914_A00111_0058_AH3FYKDMXX',
+//	              '170918_A00111_0059_BH3G22DMXX',
+//	              '170918_A00111_0060_AH3FYVDMXX',
+//	              '170921_A00111_0062_BH3FYHDMXX',
+//	              '170921_A00111_0063_AH3G23DMXX',
+//	              '170925_A00111_0066_AH3TKNDMXX',
+//	              '170925_A00111_0067_BH3M5YDMXX',
+//	              '170928_A00111_0068_AH3YKKDMXX',
+//	              '170928_A00111_0069_BH52YMDMXX']
+
+// param (
+//	// sample is the name of the 1000genomes phase 3 sample
+//	sample string
+//
+//	// out is the target of the output merged BAM file
+//	out string
+//)
+
+
+val dirs = make("$/dirs")
+
+val sourmash = "czbiohub/sourmash"
+
+// Trims low-abundance reads using trim-low-abund.py from khmer
+func Trim(r1, r2 file) file = 
+	exec(image := sourmash, mem := 2*GiB) (trim1, trim2 file) {"
+		trim-low-abund.py --cutoff 3 --trim-at-coverage 18 --variable-coverage --max-memory-usage 2e9 {{r1}} {{r2}}
+	"}
+
+// "Re-align" R1 and R2 reads as they haven't necessarily been kept in order
+// func ExtractPaired(trim1, trim2, file) file =
+//	exec(image := sourmash) {"
+//		extract-paired-reads.py
+//	"}
+
+
+// Compute a minhash signature for a sample
+func Compute(trim1, trim2 file) file =
+	exec(image := sourmash, mem := GiB) file {"
+		sourmash compute --track-abundance {{trim1}} {{trim2}}
+	"}
+
+val Main = {
+    r1 := file("s3://czbiohub-seqbot/fastqs/170907_A00111_0051_BH2HWLDMXX/G1-D042475-3_9_M-1-1_S236_R1_001.fastq.gz")
+    r2 := file("s3://czbiohub-seqbot/fastqs/170907_A00111_0051_BH2HWLDMXX/G1-D042475-3_9_M-1-1_S236_R2_001.fastq.gz")
+
+    val output = Trim(r1, r2)
+    val (trim1, _) = dirs.Pick(output, "G1-D042475-3_9_M-1-1_S236_R1_001.fastq.gz.abundtrim")
+    val (trim2, _) = dirs.Pick(output, "G1-D042475-3_9_M-1-1_S236_R2_001.fastq.gz.abundtrim")
+
+	val computed  = Compute(trim1, trim2)
+}
