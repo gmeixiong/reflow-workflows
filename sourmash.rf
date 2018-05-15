@@ -39,7 +39,7 @@ val sourmash = "czbiohub/sourmash"
 func Trim(r1, r2 file) = 
 	exec(image := sourmash, mem := 4*GiB) (out dir) {"
 		cd {{out}}
-		trim-low-abund.py --cutoff 3 --trim-at-coverage 18 --variable-coverage --max-memory-usage 4e9 {{r1}} {{r2}}
+		/home/main/anaconda2/bin/trim-low-abund.py --cutoff 3 --trim-at-coverage 18 --variable-coverage --max-memory-usage 4e9 {{r1}} {{r2}}
 	"}
 // This is safe to use on genomes, metagenomes, and transcriptomes. 
 // If you are working with large genomes or diverse metagenomes, you may need to increase the 
