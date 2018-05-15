@@ -31,11 +31,27 @@ val dirs = make("$/dirs")
 
 val sourmash = "czbiohub/sourmash"
 
+// All parameters are suggested from
+// http://sourmash.readthedocs.io/en/latest/using-sourmash-a-guide.html#could-you-just-give-us-the-command-line
+
+
 // Trims low-abundance reads using trim-low-abund.py from khmer
-func Trim(r1, r2 file) file = 
-	exec(image := sourmash, mem := 2*GiB) (trim1, trim2 file) {"
-		trim-low-abund.py --cutoff 3 --trim-at-coverage 18 --variable-coverage --max-memory-usage 2e9 {{r1}} {{r2}}
+func Trim(r1, r2 file) = 
+	exec(image := sourmash, mem := 16*GiB) (out dir) {"
+		cd {{out}}
+		trim-low-abund.py --cutoff 3 --trim-at-coverage 18 --variable-coverage --max-memory-usage 16e9 {{r1}} {{r2}}
 	"}
+// This is safe to use on genomes, metagenomes, and transcriptomes. 
+// If you are working with large genomes or diverse metagenomes, you may need to increase the 
+// -M parameter to use more memory.
+
+// For high coverage genomic data, you can do very stringent trimming with an absolute cutoff, e.g.
+
+// trim-low-abund.py -C 10 -M 2e9 <all of your input read files>
+// will eliminate all k-mers that appear fewer than 10 times in your data set. This kind of trimming will 
+	// dramatically reduce your sensitivity when working with metagenomes and transcriptomes, however, 
+	// where there are always real low-abundance k-mers present.
+
 
 // "Re-align" R1 and R2 reads as they haven't necessarily been kept in order
 // func ExtractPaired(trim1, trim2, file) file =
@@ -45,18 +61,21 @@ func Trim(r1, r2 file) file =
 
 
 // Compute a minhash signature for a sample
-func Compute(trim1, trim2 file) file =
-	exec(image := sourmash, mem := GiB) file {"
+func Compute(trim1, trim2 file) =
+	exec(image := sourmash, mem := GiB) (sig file) {"
 		sourmash compute --track-abundance {{trim1}} {{trim2}}
 	"}
 
 val Main = {
-    r1 := file("s3://czbiohub-seqbot/fastqs/170907_A00111_0051_BH2HWLDMXX/G1-D042475-3_9_M-1-1_S236_R1_001.fastq.gz")
-    r2 := file("s3://czbiohub-seqbot/fastqs/170907_A00111_0051_BH2HWLDMXX/G1-D042475-3_9_M-1-1_S236_R2_001.fastq.gz")
+ //    r1 := file("s3://czbiohub-seqbot/fastqs/170907_A00111_0051_BH2HWLDMXX/G1-D042475-3_9_M-1-1_S236_R1_001.fastq.gz")
+ //    r2 := file("s3://czbiohub-seqbot/fastqs/170907_A00111_0051_BH2HWLDMXX/G1-D042475-3_9_M-1-1_S236_R2_001.fastq.gz")
 
-    val output = Trim(r1, r2)
-    val (trim1, _) = dirs.Pick(output, "G1-D042475-3_9_M-1-1_S236_R1_001.fastq.gz.abundtrim")
-    val (trim2, _) = dirs.Pick(output, "G1-D042475-3_9_M-1-1_S236_R2_001.fastq.gz.abundtrim")
+ //    val output = Trim(r1, r2)
 
-	val computed  = Compute(trim1, trim2)
+ //    // trim-low-abund.py adds a new file in the same directory with the ending ".abundtrim"
+ //    // Type is fastq (not fastq.gz) but don't need to specify for sourmash
+ //    val (trim1, _) = dirs.Pick(output, "G1-D042475-3_9_M-1-1_S236_R1_001.fastq.gz.abundtrim")
+ //    val (trim2, _) = dirs.Pick(output, "G1-D042475-3_9_M-1-1_S236_R2_001.fastq.gz.abundtrim")
+
+	// val computed  = Compute(trim1, trim2)
 }
