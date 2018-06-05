@@ -31,54 +31,47 @@ val dirs = make("$/dirs")
 
 val sourmash = "czbiohub/sourmash"
 
-// All parameters are suggested from
-// http://sourmash.readthedocs.io/en/latest/using-sourmash-a-guide.html#could-you-just-give-us-the-command-line
-
-
-// Trims low-abundance reads using trim-low-abund.py from khmer
-func Trim(r1, r2 file) = 
-	exec(image := sourmash, mem := 4*GiB) (out dir) {"
-		cd {{out}}
-		/home/main/anaconda2/bin/trim-low-abund.py --cutoff 3 --trim-at-coverage 18 --variable-coverage --max-memory-usage 4e9 {{r1}} {{r2}}
-	"}
-// This is safe to use on genomes, metagenomes, and transcriptomes. 
-// If you are working with large genomes or diverse metagenomes, you may need to increase the 
-// -M parameter to use more memory.
-
-// For high coverage genomic data, you can do very stringent trimming with an absolute cutoff, e.g.
-
-// 			trim-low-abund.py -C 10 -M 2e9 <all of your input read files>
-// will eliminate all k-mers that appear fewer than 10 times in your data set. This kind of trimming will 
-// dramatically reduce your sensitivity when working with metagenomes and transcriptomes, however, 
-// where there are always real low-abundance k-mers present.
-
-
-// "Re-align" R1 and R2 reads as they haven't necessarily been kept in order
-// func ExtractPaired(trim1, trim2, file) file =
-//	exec(image := sourmash) {"
-//		extract-paired-reads.py
-//	"}
+// Instantiate the system modules "files" (system modules begin
+// with $), assigning its instance to the "files" identifier. To
+// view the documentation for this module, run "reflow doc
+// $/files".
+val files = make("$/files")
 
 
 // Compute a minhash signature for a sample
-func Compute(trimmed file) =
+func Compute(r1, r2 file) =
 	exec(image := sourmash, mem := GiB) (sig file) {"
-		sourmash compute --track-abundance {{trimmed}}
+		/home/main/anaconda2/bin/sourmash compute --track-abundance --ksizes 21,31,51 --name-from-first --output {{sig}} {{r1}} {{r2}}
 	"}
 
-val Main = {
-	// U-2 OS cell line
-    r1 := file("s3://olgabot-seq2loc/fastq/rnaseq/SRR629563_pass_1.fastq.gz")
-    r2 := file("s3://olgabot-seq2loc/fastq/rnaseq/SRR629563_pass_2.fastq.gz")
+// U-2 OS cell line
+// r1 := file("s3://olgabot-seq2loc/fastq/rnaseq/SRR629563_pass_1.fastq.gz")
+// r2 := file("s3://olgabot-seq2loc/fastq/rnaseq/SRR629563_pass_2.fastq.gz")
 
-    val output = Trim(r1, r2)
+// Cells I picked from tabula muris
+// r1 := file("s3://czbiohub-seqbot/fastqs/170907_A00111_0051_BH2HWLDMXX/N8-MAA000612-3_9_M-1-1_S23_R1_001.fastq.gz")
+// r2 := file("s3://czbiohub-seqbot/fastqs/170907_A00111_0051_BH2HWLDMXX/N8-MAA000612-3_9_M-1-1_S23_R2_001.fastq.gz")
 
-    // trim-low-abund.py adds a new file in the same directory with the ending ".abundtrim"
-    // Type is fastq (not fastq.gz) but don't need to specify for sourmash
-    val (trimmed, trimmed_name) = dirs.Pick(output, "*abundtrim")
-    // print(trimmed, trimmed_name)
-    // val (trim1, _) = dirs.Pick(output, "SRR629563_pass_1.fastq.gz.abundtrim")
-    // val (trim2, _) = dirs.Pick(output, "SRR629563_pass_1.fastq.gz.abundtrim")
+// copied to my folder?? -- copy didn't work because they were glaciered
+// r1 := file("s3://olgabot-maca/fastqs/N8-MAA000612-3_9_M-1-1_S23_R1_001.fastq.gz")
+// r2 := file("s3://olgabot-maca-fastqs/N8-MAA000612-3_9_M-1-1_S23_R2_001.fastq.gz")
 
-	Compute(trimmed)
-}
+// remuxed data with correct cell names
+r1 := file("s3://czbiohub-maca/remux_data/170907_A00111_0051_BH2HWLDMXX/rawdata/N8-MAA000612-3_9_M-1-1_S36/N8-MAA000612-3_9_M-1-1_S36_R1_001.fastq.gz")
+r2 := file("s3://czbiohub-maca/remux_data/170907_A00111_0051_BH2HWLDMXX/rawdata/N8-MAA000612-3_9_M-1-1_S36/N8-MAA000612-3_9_M-1-1_S36_R2_001.fastq.gz")
+
+
+out := "s3://olgabot-maca/sourmash/"
+
+// val output = Trim(r1, r2)
+
+// // trim-low-abund.py adds a new file in the same directory with the ending ".abundtrim"
+// // Type is fastq (not fastq.gz) but don't need to specify for sourmash
+// val (trimmed, trimmed_name) = dirs.Pick(output, "*abundtrim")
+// print(trimmed, trimmed_name)
+// val (trim1, _) = dirs.Pick(output, "SRR629563_pass_1.fastq.gz.abundtrim")
+// val (trim2, _) = dirs.Pick(output, "SRR629563_pass_1.fastq.gz.abundtrim")
+
+    signature := Compute(r1, r2)
+
+val Main = files.Copy(signature, out)
