@@ -1,5 +1,3 @@
-val dirs = make("$/dirs")
-
 
 
 //	# these are all the TM sequencing folders
@@ -25,24 +23,15 @@ val dirs = make("$/dirs")
 //	// out is the target of the output merged BAM file
 //	out string
 //)
+// val output = Trim(r1, r2)
 
+// // trim-low-abund.py adds a new file in the same directory with the ending ".abundtrim"
+// // Type is fastq (not fastq.gz) but don't need to specify for sourmash
+// val (trimmed, trimmed_name) = dirs.Pick(output, "*abundtrim")
+// print(trimmed, trimmed_name)
+// val (trim1, _) = dirs.Pick(output, "SRR629563_pass_1.fastq.gz.abundtrim")
+// val (trim2, _) = dirs.Pick(output, "SRR629563_pass_1.fastq.gz.abundtrim")
 
-val dirs = make("$/dirs")
-
-val sourmash = "czbiohub/sourmash"
-
-// Instantiate the system modules "files" (system modules begin
-// with $), assigning its instance to the "files" identifier. To
-// view the documentation for this module, run "reflow doc
-// $/files".
-val files = make("$/files")
-
-
-// Compute a minhash signature for a sample
-func Compute(r1, r2 file) =
-	exec(image := sourmash, mem := GiB) (sig file) {"
-		/home/main/anaconda2/bin/sourmash compute --track-abundance --ksizes 21,31,51 --name-from-first --output {{sig}} {{r1}} {{r2}}
-	"}
 
 // U-2 OS cell line
 // r1 := file("s3://olgabot-seq2loc/fastq/rnaseq/SRR629563_pass_1.fastq.gz")
@@ -56,22 +45,29 @@ func Compute(r1, r2 file) =
 // r1 := file("s3://olgabot-maca/fastqs/N8-MAA000612-3_9_M-1-1_S23_R1_001.fastq.gz")
 // r2 := file("s3://olgabot-maca-fastqs/N8-MAA000612-3_9_M-1-1_S23_R2_001.fastq.gz")
 
+
+val sourmash = "czbiohub/sourmash"
+
+// Instantiate the system modules "files" (system modules begin
+// with $), assigning its instance to the "files" identifier. To
+// view the documentation for this module, run "reflow doc
+// $/files".
+val files = make("$/files")
+
+
+// Compute a minhash signature for a sample
+func Compute(r1, r2 file) =
+	exec(image := sourmash, mem := GiB) (signature file) {"
+		/home/main/anaconda2/bin/sourmash compute --track-abundance --ksizes 21,31,51 --name {{r1}} --output {{signature}} {{r1}} {{r2}}
+	"}
+
 // remuxed data with correct cell names
 r1 := file("s3://czbiohub-maca/remux_data/170907_A00111_0051_BH2HWLDMXX/rawdata/N8-MAA000612-3_9_M-1-1_S36/N8-MAA000612-3_9_M-1-1_S36_R1_001.fastq.gz")
 r2 := file("s3://czbiohub-maca/remux_data/170907_A00111_0051_BH2HWLDMXX/rawdata/N8-MAA000612-3_9_M-1-1_S36/N8-MAA000612-3_9_M-1-1_S36_R2_001.fastq.gz")
 
+out := "s3://olgabot-maca/sourmash/N8-MAA000612-3_9_M-1-1_S36.signature"
 
-out := "s3://olgabot-maca/sourmash/"
 
-// val output = Trim(r1, r2)
-
-// // trim-low-abund.py adds a new file in the same directory with the ending ".abundtrim"
-// // Type is fastq (not fastq.gz) but don't need to specify for sourmash
-// val (trimmed, trimmed_name) = dirs.Pick(output, "*abundtrim")
-// print(trimmed, trimmed_name)
-// val (trim1, _) = dirs.Pick(output, "SRR629563_pass_1.fastq.gz.abundtrim")
-// val (trim2, _) = dirs.Pick(output, "SRR629563_pass_1.fastq.gz.abundtrim")
-
-    signature := Compute(r1, r2)
+signature := Compute(r1, r2)
 
 val Main = files.Copy(signature, out)
