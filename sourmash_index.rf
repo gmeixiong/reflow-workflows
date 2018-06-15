@@ -59,6 +59,6 @@ func Index(signatures dir, ksize string) =
 "}
 
 
-val database = Index(r1, r2, sample_id, ksizes)
+val database = Index(signatures, ksize)
 
 val Main = files.Copy(database, output_database)
