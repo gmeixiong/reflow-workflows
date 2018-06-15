@@ -19,7 +19,7 @@ val sourmash = "czbiohub/sourmash"
 // with $), assigning its instance to the "files" identifier. To
 // view the documentation for this module, run "reflow doc
 // $/files".
-val dirs = make("$/dirs")
+val files = make("$/files")
 
 
 // Create a sequence bloom tree (SBT) database for fast lookups of sequences
