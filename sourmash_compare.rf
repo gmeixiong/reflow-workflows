@@ -3,8 +3,8 @@ param (
     // S3 path to directory containing computed signatures
     signatures string
 
-    // Full s3 file location to put the sourmash signature
-    output_database string
+    // Full s3 file location to put the output comparison
+    output string
 
     // Size of kmer to use (can only use one for index)
     ksize = "21"
@@ -53,6 +53,6 @@ func Compare(signatures dir, ksize, sequence_to_compare string) =
 		/home/main/anaconda2/bin/sourmash compare --{{sequence_to_compare}} --ksize {{ksize}} --output {{comparison}} --traverse-directory {{signatures}}
 "}
 
-val signature = Compare(signatures, ksize, sequence_to_compare)
+val comparison = Compare(signatures, ksize, sequence_to_compare)
 
-val Main = files.Copy(signature, output_signature)
+val Main = files.Copy(comparison, output)
