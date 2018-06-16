@@ -50,7 +50,7 @@ val strings = make("$/strings")
 //   -q, --quiet           suppress non-error output
 func Compare(signatures dir, ksize, sequence_to_compare string) = 
 	exec(image := sourmash, mem := GiB) (comparison file) {"
-		/home/main/anaconda2/bin/sourmash compare --{{sequence_to_compare}} --ksize {{ksize}} --output {{comparison}} --traverse-directory {{signatures}}
+		/usr/local/bin/sourmash compare --{{sequence_to_compare}} --ksize {{ksize}} --output {{comparison}} --traverse-directory {{signatures}}
 "}
 
 val signatures_dir = dir(signatures)

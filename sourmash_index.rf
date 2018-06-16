@@ -55,7 +55,7 @@ val files = make("$/files")
 //   --no-dna              do not choose a DNA signature
 func Index(signatures dir, ksize string) = 
 	exec(image := sourmash, mem := 16*GiB) (ksize_database file) {"
-		/home/main/anaconda2/bin/sourmash index --ksize {{ksize}} --traverse-directory {{ksize_database}} {{signatures}}
+		/usr/local/bin/sourmash index --ksize {{ksize}} --traverse-directory {{ksize_database}} {{signatures}}
 "}
 
 
