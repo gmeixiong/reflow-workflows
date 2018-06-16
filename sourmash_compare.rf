@@ -14,7 +14,7 @@ param (
 )
 
 
-val sourmash = "czbiohub/sourmash"
+val kmer_hashing = "czbiohub/kmer-hashing"
 
 // Instantiate the system modules "files" (system modules begin
 // with $), assigning its instance to the "files" identifier. To
@@ -49,7 +49,7 @@ val strings = make("$/strings")
 //   --csv CSV             save matrix in CSV format (with column headers)
 //   -q, --quiet           suppress non-error output
 func Compare(signatures dir, ksize, sequence_to_compare string) = 
-	exec(image := sourmash, mem := GiB) (comparison file) {"
+	exec(image := kmer_hashing, mem := GiB) (comparison file) {"
 		/usr/local/bin/sourmash compare --{{sequence_to_compare}} --ksize {{ksize}} --output {{comparison}} --traverse-directory {{signatures}}
 "}
 
