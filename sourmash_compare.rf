@@ -53,6 +53,8 @@ func Compare(signatures dir, ksize, sequence_to_compare string) =
 		/home/main/anaconda2/bin/sourmash compare --{{sequence_to_compare}} --ksize {{ksize}} --output {{comparison}} --traverse-directory {{signatures}}
 "}
 
-val comparison = Compare(signatures, ksize, sequence_to_compare)
+val signatures_dir = dir(signatures)
+
+val comparison = Compare(signatures_dir, ksize, sequence_to_compare)
 
 val Main = files.Copy(comparison, output)
