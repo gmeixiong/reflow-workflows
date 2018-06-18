@@ -3,7 +3,7 @@ param (
     signatures string
 
     // Full s3 file location to put the sourmash signature
-    output_database string
+    output string
 
     // Size of kmer to use (can only use one for index)
     ksize = "21"
