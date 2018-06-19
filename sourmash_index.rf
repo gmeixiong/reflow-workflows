@@ -67,4 +67,4 @@ val signatures_dir = dir(signatures)
 
 val database = Index(signatures_dir, ksize)
 
-val Main = files.Copy(database, output_database)
+val Main = files.Copy(database, output)
