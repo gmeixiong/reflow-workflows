@@ -1,0 +1,7 @@
+// Instantiate Go system module "strings"
+val strings = make("$/strings")
+
+func SplitByPipe(read string) = {
+	reads := strings.Split(read, "|")
+	[file(read) | read <- reads]
+}
