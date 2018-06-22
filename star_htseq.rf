@@ -32,20 +32,22 @@ htseq := "quay.io/biocontainers/htseq:0.9.1--py36_0"
 
 func DecompressReference(reference file) =
     exec(image := star, mem := 32*GiB) (fasta file, gtf file) {"
-        tar -C /tmp/reference -xvf {{reference}} 
+        mkdir /tmp/reference
+        tar -C /tmp/reference -xzvf {{reference}} 
+        ls -lha 
         cp /tmp/reference/*fa {{fasta}}
         cp /tmp/reference/*gtf {{gtf}}
     "}
 
-func starIndex(genome file) (out dir) =
+func starIndex(fasta, gtf file) (out dir) =
     exec(image := star, mem := 32*GiB) (out dir) {"
         tar -xvf {{genome}}
         STAR \
         --runThreadN 12 \
         --runMode genomeGenerate \
         --genomeDir {{out}} \
-        --genomeFastaFiles hg38-plus/hg38-plus.fa \
-        --sjdbGTFfile hg38-plus/hg38-plus.gtf
+        --genomeFastaFiles {{fasta}} \
+        --sjdbGTFfile {{gtf}}
     "}
 
 func starAlign(read1, read2 [file], genomeDir dir) = 
