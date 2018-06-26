@@ -11,11 +11,12 @@
 //     name string
 
 //     // Full s3 folder location to copy alignment output and htseq 
-//     // results
+//     // results. Each sample is output to a folder.
 //     output string
 
 //     // Either "hg38-plus" or "mm10-plus". 
-//     // Must be a .tgz file in s3://czbiohub-reference
+//     // Must be a .tgz file containing a folder with a single .fa 
+//     // and .gtf file in s3://czbiohub-reference
 //     genome = "hg38-plus"
 // )
 
@@ -26,7 +27,7 @@ val dirs = make("$/dirs")
 // Local utility file
 val util = make("./util.rf")
 
-ubuntu := "ubuntu/16.04"
+ubuntu := "ubuntu:16.04"
 star := "quay.io/biocontainers/star:2.6.0c--0"
 samtools := "biocontainers/samtools"
 htseq := "quay.io/biocontainers/htseq:0.9.1--py36_0"
@@ -35,9 +36,10 @@ func DecompressReference(reference file) =
     exec(image := ubuntu, mem := 32*GiB) (fasta file, gtf file) {"
         mkdir /tmp/reference
         tar -C /tmp/reference -xzvf {{reference}} 
-        ls -lha 
-        cp /tmp/reference/*fa {{fasta}}
-        cp /tmp/reference/*gtf {{gtf}}
+        pwd
+        ls -lha /tmp/reference/
+        cp /tmp/reference/*/*fa {{fasta}}
+        cp /tmp/reference/*/*gtf {{gtf}}
     "}
 
 func starIndex(fasta, gtf file) (out dir) =
@@ -73,8 +75,8 @@ func starAlign(read1, read2 [file], genomeDir dir) =
     "}
 
 func samSort(aligned file) =
-    exec (image := samtools, mem := GiB) (sorted file) {"
-        samtools sort -m 6000000000 -o {{sorted}} {{aligned}}
+    exec (image := samtools, mem := 64*GiB) (sorted file) {"
+        samtools sort -m 60G -o {{sorted}} {{aligned}}
     "}
 
 func samIndex(sorted file) =
@@ -83,8 +85,8 @@ func samIndex(sorted file) =
     "}
 
 func samSortByName(sorted file) =
-    exec(image := samtools, mem := GiB) (byname file) {"
-        samtools sort -m 5000000000 -n -o {{byname}} {{sorted}}
+    exec(image := samtools, mem := 64*GiB) (byname file) {"
+        samtools sort -m 60G -n -o {{byname}} {{sorted}}
     "}
 
 func htseqCount(byName, gtf file) =
