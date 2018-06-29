@@ -1,6 +1,7 @@
 // Instantiate Go system module "strings"
 val strings = make("$/strings")
 
+// Split strings separated by a "|" ("pipe") and return a list of files
 func SplitByPipe(read string) = {
 	reads := strings.Split(read, "|")
 	[file(read) | read <- reads]
