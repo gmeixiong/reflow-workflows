@@ -97,7 +97,7 @@ func htseqCount(byName, gtf file) =
 val Main = {
     read1 := "s3://czbiohub-maca/remux_data/170907_A00111_0051_BH2HWLDMXX/rawdata/N8-MAA000612-3_9_M-1-1_S36/N8-MAA000612-3_9_M-1-1_S36_R1_001.fastq.gz"
     read2 := "s3://czbiohub-maca/remux_data/170907_A00111_0051_BH2HWLDMXX/rawdata/N8-MAA000612-3_9_M-1-1_S36/N8-MAA000612-3_9_M-1-1_S36_R2_001.fastq.gz"
-    name := "G1-D042475-3_9_M-1-1_S236"
+    name := "N8-MAA000612-3_9_M-1-1_S36"
     output := "s3://olgabot-maca/star_htseq_test/"
     genome := "mm10-plus"
 
@@ -110,6 +110,8 @@ val Main = {
 
     val index = starIndex(fasta, gtf)
     val alignment_output = starAlign(r1, r2, index)
+    dirs.Copy(alignment_output, output)
+    
     val (aligned, _) = dirs.Pick(alignment_output, "Aligned.out.bam")
     val sorted = samSort(aligned)
     val index = samIndex(sorted)
@@ -117,6 +119,6 @@ val Main = {
     val counts = htseqCount(byName, gtf)
 
     count_output := output + "htseq-count.txt"
-    files.Copy(counts, count_output)
-    // dirs.Copy(alignment_output, output)
+
+    // files.Copy(counts, count_output)
 }
