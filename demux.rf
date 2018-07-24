@@ -1,4 +1,6 @@
 param (
+	samplesheet string // "s3://czbiohub-seqbot/sample-sheets/[runID].csv"
+	bcl_dir string     // "s3://czbiohub-seqbot/bcl/[runID]"
     runID string
     out string
 )
@@ -6,17 +8,36 @@ param (
 val dirs = make("$/dirs")
 val strings = make("$/strings")
 
-val bcl2fastqimg = "czbiohub/bcl2fastq"
-val sampleSheet = file(strings.Join(["s3://czbiohub-seqbot/sample-sheets/", runID, ".csv"], ""))
-val bclDir = dir(strings.Join(["s3://czbiohub-seqbot/bcl/", runID], ""))
+val docker_image = "czbiohub/bcl2fastq"
+// val sampleSheet = file(strings.Join(["s3://czbiohub-seqbot/sample-sheets/", runID, ".csv"], ""))
+// val bclDir = dir(strings.Join(["s3://czbiohub-seqbot/bcl/", runID], ""))
+
+//bcl2fastq behavioral options:
+// --adapter-stringency 
+// --barcode-mismatches
+// --create-fastq-for-indexreads
+// --ignore-missing-bcls
+// --ignore-missing-filter
+// --ignore-missing-positions
+// --minimum-trimmed-readlength
+// --mask-short-adapter-reads
+// --tiles
+// --use-bases-mask
+// --with-failed-reads 
+// --write-fastq-reversecomplement
+// --no-bgzf-compression 
+// --fastq-compression-level
+// --no-lane-splitting 
+// --find-adapters-withsliding-window
 
 func bcl2fastq(sampleSheet file, bclPath dir) =
-    exec(image := bcl2fastqimg, mem := 64*GiB) (demuxed dir) {"
+    exec(image := docker_image, mem := 64*GiB) (demuxed dir) {"
         bcl2fastq --no-lane-splitting --sample-sheet {{sampleSheet}} -R {{bclPath}} -o {{demuxed}}
     "}
 
-
 val Main = {
-    demuxed := bcl2fastq(sampleSheet, bclDir)
+	val samplesheet = file(samplesheet)
+	val bcl_dir = dir(bcl_dir)
+    demuxed := bcl2fastq(samplesheet, bcl_dir)
     dirs.Copy(demuxed, out)
 }
