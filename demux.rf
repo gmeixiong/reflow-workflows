@@ -7,7 +7,7 @@ param (
 
 val dirs = make("$/dirs")
 
-//bcl2fastq behavioral options:
+// bcl2fastq behavioral options:
 // --adapter-stringency 
 // --barcode-mismatches
 // --create-fastq-for-indexreads
@@ -31,9 +31,9 @@ func bcl2fastq(samplesheet file, bcl_path dir) =
     "}
 
 func removeUndetermined(demuxed dir) dir = 
-    exec(image := "ubuntu") (output dir) {"
+    exec(image := "ubuntu") (out dir) {"
     	shopt -s extglob
-    	cp {{demuxed}}/!(Undetermined*) {{output}}
+    	cp {{demuxed}}/!(Undetermined*) {{out}}
     	shopt -u extglob
     "}
 
