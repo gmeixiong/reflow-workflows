@@ -1,16 +1,11 @@
 param (
-	samplesheet string // "s3://czbiohub-seqbot/sample-sheets/[runID].csv"
+	samplesheet string // local sample sheet
 	bcl_dir string     // "s3://czbiohub-seqbot/bcl/[runID]"
-    runID string
-    out string
+    outdir string 	   // "s3://bucket/path/to/output"
+    no_undetermined = false
 )
 
 val dirs = make("$/dirs")
-val strings = make("$/strings")
-
-val docker_image = "czbiohub/bcl2fastq"
-// val sampleSheet = file(strings.Join(["s3://czbiohub-seqbot/sample-sheets/", runID, ".csv"], ""))
-// val bclDir = dir(strings.Join(["s3://czbiohub-seqbot/bcl/", runID], ""))
 
 //bcl2fastq behavioral options:
 // --adapter-stringency 
@@ -30,14 +25,30 @@ val docker_image = "czbiohub/bcl2fastq"
 // --no-lane-splitting 
 // --find-adapters-withsliding-window
 
-func bcl2fastq(sampleSheet file, bclPath dir) =
-    exec(image := docker_image, mem := 64*GiB) (demuxed dir) {"
-        bcl2fastq --no-lane-splitting --sample-sheet {{sampleSheet}} -R {{bclPath}} -o {{demuxed}}
+func bcl2fastq(samplesheet file, bcl_path dir) =
+    exec(image := "czbiohub/bcl2fastq", mem := 64*GiB) (out dir) {"
+        bcl2fastq --no-lane-splitting --sample-sheet {{samplesheet}} -R {{bcl_path}} -o {{out}}
     "}
 
-val Main = {
-	val samplesheet = file(samplesheet)
-	val bcl_dir = dir(bcl_dir)
-    demuxed := bcl2fastq(samplesheet, bcl_dir)
-    dirs.Copy(demuxed, out)
+func removeUndetermined(demuxed dir) dir = 
+    exec(image := "ubuntu") (output dir) {"
+		shopt -s extglob
+		cp {{demuxed}}/!(Undetermined*) {{output}}
+		shopt -u extglob
+    "}
+
+// cp -r {{demuxed}} {{output}}
+// rm {{output}}/0/Undetermined*
+
+val samplesheet = file(samplesheet)
+val bcl_dir = dir(bcl_dir)
+demuxed_output := bcl2fastq(samplesheet, bcl_dir)
+
+val fastq_output = if no_undetermined {
+	removeUndetermined(demuxed_output)
+} else {
+	demuxed_output
 }
+
+@requires(cpu := 8, mem := 32*GiB, disk := 200*GiB)
+val Main = dirs.Copy(fastq_output, outdir)
