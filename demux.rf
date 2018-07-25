@@ -2,7 +2,7 @@ param (
     samplesheet string         // local sample sheet
     bcl_path string            // "s3://czbiohub-seqbot/bcl/[runID]"
     output_path string         // "s3://bucket/path/to/output"
-    cell_ranger = false        // if set, use 10x cellranger to demux
+    cellranger = false        // if set, use 10x cellranger to demux
     no_undetermined = false    // if set, ignore Undetermined reads, only applies to bcl2fastq (not 10x)
     no_lane_splitting = false  // if set, run bcl2fastq with no lane splitting, only applies to bcl2fastq (not 10x)
     docker_image = "czbiohub/demuxer" 
@@ -76,7 +76,7 @@ val Main = {
     samplesheet := file(samplesheet)
     bcl_dir := dir(bcl_path)
 
-    val fastq_output = if cell_ranger {
+    val fastq_output = if cellranger {
         cellRangerRun(samplesheet, bcl_dir)
     } else {
         bcl2fastqRun(samplesheet, bcl_dir)
