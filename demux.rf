@@ -28,16 +28,19 @@ val dirs = make("$/dirs")
 // --no-lane-splitting 
 // --find-adapters-withsliding-window
 
+// Runs bcl2fastq with --no-lane-splitting option.
 func bcl2fastq_no_split(samplesheet file, bcl_dir dir) =
     exec(image := docker_image, mem := 64*GiB) (out dir) {"
         bcl2fastq --no-lane-splitting --sample-sheet {{samplesheet}} -R {{bcl_dir}} -o {{out}}
     "}
 
+// Runs bcl2fastq with lane splitting.
 func bcl2fastq_split(samplesheet file, bcl_dir dir) =
     exec(image := docker_image, mem := 64*GiB) (out dir) {"
         bcl2fastq --sample-sheet {{samplesheet}} -R {{bcl_dir}} -o {{out}}
     "}
 
+// Removes Undetermined files from demuxed directory. Used in batch runs.
 func removeUndetermined(demuxed dir) dir = 
     exec(image := "ubuntu") (out dir) {"
         shopt -s extglob
@@ -45,6 +48,7 @@ func removeUndetermined(demuxed dir) dir =
         shopt -u extglob
     "}
 
+// bcl2fastq wrapper. Takes care of the -no-lane-splitting and -no-undetermined flags.
 func bcl2fastqRun(samplesheet file, bcl_dir dir) dir = {
     val demuxed_output = if no_lane_splitting {
         bcl2fastq_no_split(samplesheet, bcl_dir)
@@ -61,6 +65,7 @@ func bcl2fastqRun(samplesheet file, bcl_dir dir) dir = {
     fastq_output
 }
 
+// Runs 10x cellranger.
 func cellRangerRun(samplesheet file, bcl_dir dir) =
     exec(image := docker_image, mem := 64*GiB) (out dir) {"
         cellranger mkfastq --localmem=60 --sample-sheet {{samplesheet}} --run {{bcl_dir}} --output-dir {{out}}
