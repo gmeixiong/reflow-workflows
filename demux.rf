@@ -1,8 +1,11 @@
 param (
-	samplesheet string // local sample sheet
-	bcl_dir string     // "s3://czbiohub-seqbot/bcl/[runID]"
-	outdir string 	   // "s3://bucket/path/to/output"
-	no_undetermined = false // if set, ignore Undetermined reads
+    samplesheet string         // local sample sheet
+    bcl_path string            // "s3://czbiohub-seqbot/bcl/[runID]"
+    output_path string         // "s3://bucket/path/to/output"
+    cell_ranger = false        // if set, use 10x cellranger to demux
+    no_undetermined = false    // if set, ignore Undetermined reads, only applies to bcl2fastq (not 10x)
+    no_lane_splitting = false  // if set, run bcl2fastq with no lane splitting, only applies to bcl2fastq (not 10x)
+    docker_image = "czbiohub/demuxer" 
 )
 
 val dirs = make("$/dirs")
@@ -25,30 +28,54 @@ val dirs = make("$/dirs")
 // --no-lane-splitting 
 // --find-adapters-withsliding-window
 
-func bcl2fastq(samplesheet file, bcl_path dir) =
-    exec(image := "czbiohub/bcl2fastq", mem := 64*GiB) (out dir) {"
-    	bcl2fastq --no-lane-splitting --sample-sheet {{samplesheet}} -R {{bcl_path}} -o {{out}}
+func bcl2fastq_no_split(samplesheet file, bcl_dir dir) =
+    exec(image := docker_image, mem := 64*GiB) (out dir) {"
+        bcl2fastq --no-lane-splitting --sample-sheet {{samplesheet}} -R {{bcl_dir}} -o {{out}}
+    "}
+
+func bcl2fastq_split(samplesheet file, bcl_dir dir) =
+    exec(image := docker_image, mem := 64*GiB) (out dir) {"
+        bcl2fastq --sample-sheet {{samplesheet}} -R {{bcl_dir}} -o {{out}}
     "}
 
 func removeUndetermined(demuxed dir) dir = 
     exec(image := "ubuntu") (out dir) {"
-    	shopt -s extglob
-    	cp {{demuxed}}/!(Undetermined*) {{out}}
-    	shopt -u extglob
+        shopt -s extglob
+        cp {{demuxed}}/!(Undetermined*) {{out}}
+        shopt -u extglob
     "}
 
-// cp -r {{demuxed}} {{output}}
-// rm {{output}}/0/Undetermined*
+func bcl2fastqRun(samplesheet file, bcl_dir dir) dir = {
+    val demuxed_output = if no_lane_splitting {
+        bcl2fastq_no_split(samplesheet, bcl_dir)
+    } else {
+        bcl2fastq_split(samplesheet, bcl_dir)
+    }
 
-val samplesheet = file(samplesheet)
-val bcl_dir = dir(bcl_dir)
-demuxed_output := bcl2fastq(samplesheet, bcl_dir)
+    val fastq_output = if no_undetermined {
+        removeUndetermined(demuxed_output)
+    } else {
+        demuxed_output
+    }
 
-val fastq_output = if no_undetermined {
-	removeUndetermined(demuxed_output)
-} else {
-	demuxed_output
+    fastq_output
 }
 
+func cellRangerRun(samplesheet file, bcl_dir dir) =
+    exec(image := docker_image, mem := 64*GiB) (out dir) {"
+        cellranger mkfastq --localmem=60 --sample-sheet {{samplesheet}} --run {{bcl_dir}} --output-dir {{out}}
+    "}
+
 @requires(cpu := 8, mem := 32*GiB, disk := 200*GiB)
-val Main = dirs.Copy(fastq_output, outdir)
+val Main = {
+    samplesheet := file(samplesheet)
+    bcl_dir := dir(bcl_path)
+
+    val fastq_output = if cell_ranger {
+        cellRangerRun(samplesheet, bcl_dir)
+    } else {
+        bcl2fastqRun(samplesheet, bcl_dir)
+    }
+
+    dirs.Copy(fastq_output, output_path)
+}
