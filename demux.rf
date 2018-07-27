@@ -23,6 +23,8 @@ param (
 )
 
 val dirs = make("$/dirs")
+val strings = make("$/strings")
+val path = make("$/path")
 
 // bcl2fastq behavioral options:
 // --adapter-stringency 
@@ -54,18 +56,25 @@ func bcl2fastq_split(samplesheet file, bcl_dir dir) =
         bcl2fastq --sample-sheet {{samplesheet}} -R {{bcl_dir}} -o {{out}}
     "}
 
-// Removes Undetermined files from demuxed directory. Used in batch runs.
-func removeUndetermined(demuxed dir, batch_runID int) dir = 
-    exec(image := "ubuntu") (out dir) {"
-        shopt -s extglob
-        cp {{demuxed}}/!(Undetermined*|Stats|Reports) {{out}}
-        shopt -u extglob
-        
-        mkdir {{out}}/Reports
-        mkdir {{out}}/Stats
-        cp -r {{demuxed}}/Reports {{out}}/Reports/Reports_{{batch_runID}}
-        cp -r {{demuxed}}/Stats {{out}}/Stats/Stats_{{batch_runID}}
-    "}
+// Modifies Reports/ and Stats/ paths prevent batch runs from overwriting
+func modifyDirectories(filename string, id int) string = {
+    fullPath := strings.Split(filename,"/")
+    if len(fullPath) > 1 {
+        base := fullPath[0]
+        remaining := [fullPath[i]| i <- range(1, len(fullPath))]
+        remainingPath := path.Join(remaining)
+        path.Join([fullPath[0], strings.FromInt(id), remainingPath])
+    } else { 
+        filename 
+    }
+}
+
+// Removes Undetermined files and prevents overwriting of Reports/ and Stats/ in batch runs.
+func fixBatchResults(demuxed dir, id int) dir = {
+    noUndetermined := [(n, f)| (n, f) <- map(demuxed), if !strings.HasPrefix(n, "Undetermined")]
+    fixedStatsAndReports := [(modifyDirectories(n, id), f)| (n, f) <- noUndetermined]
+    dirs.Make(map(fixedStatsAndReports))
+}
 
 // bcl2fastq wrapper. Takes care of the -no-lane-splitting and -batch_runID flags.
 func bcl2fastqRun(samplesheet file, bcl_dir dir) dir = {
@@ -76,7 +85,7 @@ func bcl2fastqRun(samplesheet file, bcl_dir dir) dir = {
     }
 
     val fastq_output = if batch_runID > 0 {
-        removeUndetermined(demuxed_output, batch_runID)
+        fixBatchResults(demuxed_output, batch_runID)
     } else {
         demuxed_output
     }
