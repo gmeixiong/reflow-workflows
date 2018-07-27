@@ -8,15 +8,15 @@ param (
     // "s3://bucket/path/to/output"
     output_path string
 
-    // if set, use 10x cellranger to demux
-    cellranger = false
+    // if set, run bcl2fastq with no lane splitting, only applies to bcl2fastq (not 10x)
+    no_lane_splitting = false
 
     // if > 0, signifies batch run: ignore Undetermined reads and save reports/ 
     // and stats/ to different path, only applies to bcl2fastq (not 10x)
     batch_runID = 0
 
-    // if set, run bcl2fastq with no lane splitting, only applies to bcl2fastq (not 10x)
-    no_lane_splitting = false
+    // if set, use 10x cellranger to demux
+    cellranger = false
 
     // czbiohub docker image containing bcl2fastq and cellranger
     docker_image = "czbiohub/demuxer" 
